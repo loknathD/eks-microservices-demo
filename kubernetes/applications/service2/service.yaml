@@ -1,0 +1,19 @@
+# service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-service
+  labels:
+    app: node-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: node-service

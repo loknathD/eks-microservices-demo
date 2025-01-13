@@ -1,0 +1,135 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_REGISTRY = 'your-registry'
+        KUBERNETES_CLUSTER = 'eks-microservices-demo'
+        AWS_REGION = 'us-west-2'
+        DOCKER_CREDENTIALS = 'docker-cred-id'
+        AWS_CREDENTIALS = 'aws-cred-id'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Set Build Number') {
+            steps {
+                script {
+                    env.BUILD_VERSION = "1.0.${BUILD_NUMBER}"
+                }
+            }
+        }
+        
+        stage('Build Services') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASS}
+                        
+                        # Make scripts executable
+                        chmod +x jenkins/scripts/build.sh
+                        chmod +x jenkins/scripts/deploy.sh
+                    """
+                    
+                    parallel(
+                        "Service 1": {
+                            sh "./jenkins/scripts/build.sh python-service ${BUILD_VERSION} ${DOCKER_REGISTRY}"
+                        },
+                        "Service 2": {
+                            sh "./jenkins/scripts/build.sh node-service ${BUILD_VERSION} ${DOCKER_REGISTRY}"
+                        },
+                        "Service 3": {
+                            sh "./jenkins/scripts/build.sh php-service ${BUILD_VERSION} ${DOCKER_REGISTRY}"
+                        }
+                    )
+                }
+            }
+        }
+        
+        stage('Run Tests') {
+            parallel {
+                stage('Test Python Service') {
+                    steps {
+                        dir('kubernetes/applications/service1') {
+                            sh 'python -m pytest tests/'
+                        }
+                    }
+                }
+                stage('Test Node Service') {
+                    steps {
+                        dir('kubernetes/applications/service2') {
+                            sh 'npm test'
+                        }
+                    }
+                }
+                stage('Test PHP Service') {
+                    steps {
+                        dir('kubernetes/applications/service3') {
+                            sh 'php phpunit tests/'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to EKS') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                credentialsId: "${AWS_CREDENTIALS}",
+                                accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
+                                secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    
+                    script {
+                        def services = ['python-service', 'node-service', 'php-service']
+                        
+                        for (service in services) {
+                            sh """
+                                ./jenkins/scripts/deploy.sh \
+                                ${KUBERNETES_CLUSTER} \
+                                ${AWS_REGION} \
+                                ${service} \
+                                ${BUILD_VERSION}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                credentialsId: "${AWS_CREDENTIALS}",
+                                accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
+                                secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    
+                    sh """
+                        aws eks update-kubeconfig --name ${KUBERNETES_CLUSTER} --region ${AWS_REGION}
+                        kubectl get deployments
+                        kubectl get services
+                        kubectl get pods
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+            // Add notifications (email, Slack, etc.) here
+        }
+        failure {
+            echo "Pipeline failed!"
+            // Add failure notifications here
+        }
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+    }
+}

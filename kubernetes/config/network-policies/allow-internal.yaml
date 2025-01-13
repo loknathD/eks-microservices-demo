@@ -1,0 +1,71 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-internal-communication
+  namespace: default
+spec:
+  podSelector: {}  # Applies to all pods in the namespace
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow incoming traffic from within the namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 5000  # Python service port
+        - protocol: TCP
+          port: 3000  # Node.js service port
+    # Allow incoming traffic from ingress-nginx namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 5000
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow outbound traffic to other pods in the namespace
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 5000
+        - protocol: TCP
+          port: 3000
+    # Allow outbound traffic to monitoring namespace (if needed)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090  # Prometheus
+        - protocol: TCP
+          port: 3000  # Grafana
