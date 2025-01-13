@@ -1,0 +1,35 @@
+# ingress-setup.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /service1(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: service1
+            port: 
+              number: 80
+      - path: /service2(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: service2
+            port:
+              number: 80
+      - path: /service3(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: service3
+            port:
+              number: 80

@@ -2,11 +2,11 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_REGISTRY = 'your-registry'
+        DOCKER_REGISTRY = 'docker.io'
         KUBERNETES_CLUSTER = 'eks-microservices-demo'
         AWS_REGION = 'us-west-2'
-        DOCKER_CREDENTIALS = 'docker-cred-id'
-        AWS_CREDENTIALS = 'aws-cred-id'
+        DOCKER_CREDENTIALS = 'yourcred'
+        AWS_CREDENTIALS = 'yourcred'
     }
     
     stages {
