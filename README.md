@@ -61,11 +61,11 @@ The cluster hosts several components managed through Kubernetes manifests:
 
 Before beginning the setup, ensure you have the following tools installed:
 
-1. AWS CLI (version 2.0 or later)
-2. Terraform (version 1.0.0 or later)
-3. kubectl (version compatible with your EKS cluster)
-4. Docker (version 20.10 or later)
-5. Jenkins (version 2.375 or later)
+1. AWS CLI 
+2. Terraform 
+3. kubectl 
+4. Docker 
+5. Jenkins 
 
 ## Setup Instructions
 
@@ -136,8 +136,6 @@ kubectl apply -f kubernetes/applications/service3/
 
 3. Trigger the pipeline to deploy all services
 
-## Usage Guide
-
 ### Accessing the Applications
 
 After deployment, services are accessible through the ingress controller:
@@ -199,22 +197,6 @@ Through Jenkins pipeline:
    - Deploy updated applications
    - Verify deployment success
 
-## Troubleshooting
-
-Common issues and solutions:
-
-1. Ingress Not Accessible:
-   - Check ingress controller pods: `kubectl get pods -n ingress-nginx`
-   - Verify service endpoints: `kubectl get endpoints`
-
-2. Pod Scaling Issues:
-   - Check HPA status: `kubectl describe hpa`
-   - Verify metrics server: `kubectl get apiservice v1beta1.metrics.k8s.io`
-
-3. Network Policy Issues:
-   - Test connectivity between pods
-   - Review policy logs: `kubectl logs -n kube-system calico-node-xxxxx`
-
 ## Cleanup
 
 To remove all resources:
@@ -228,16 +210,5 @@ kubectl delete -f kubernetes/
 
 cd terraform
 terraform destroy
-
-
-## Project Structure
-
-
-├── jenkins/                  # CI/CD Configuration
-├── kubernetes/              # Kubernetes Manifests
-│   ├── applications/       # Microservices
-│   ├── config/            # Cluster Configuration
-│   └── RBAC/             # Access Control
-└── terraform/             # Infrastructure as Code
 
 Note - please use your own access keys/secret accesskeys/docker credentails/, i have removed my credentails and only dummy credentails are used in the code. Thanks
